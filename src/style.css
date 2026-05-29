@@ -1,0 +1,27 @@
+/* 清除所有默认边距，确保页面不产生滚动条 */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* 禁止溢出滚动 */
+  background-color: #FAF8F4; /* 使用你的工坊底色 */
+  font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+/* 重置 #app，让它真正铺满屏幕，而不是固定在 1126px */
+#app {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: none; /* 去掉模版自带的边框 */
+}
+
+/* 统一盒模型计算方式 */
+* {
+  box-sizing: border-box;
+}
