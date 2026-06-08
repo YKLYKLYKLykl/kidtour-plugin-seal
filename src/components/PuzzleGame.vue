@@ -49,7 +49,6 @@ const initGame = () => {
 
 const words = [
   { text: "福" },
-  { text: "喜" },
   { text: "雅" },
   { text: "和" },
   { text: "诚" },
