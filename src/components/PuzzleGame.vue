@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted} from 'vue';  // ← 加上 watch
+import { ref, onMounted} from 'vue'; 
 import { sendComplete } from '../useKidtourPlugin.js';
 
 const emit = defineEmits(['onBack']);
@@ -8,8 +8,15 @@ const hasReported = ref(false);
 const sealImage = ref(''); // 存储生成的印章底图
 const cells = ref([]);     // 存储 9 个小格子的状态
 const isWin = ref(false);
+const currentSeal = ref(null);
 const showGuide = ref(false); // 控制弹窗显示
 const puzzleSize = 390;    // 整体尺寸
+
+const hintLevel = ref(0);
+const hintAvailable = ref(false);
+const showHintModal = ref(false);
+
+let hintTimer = null;
 
 // 新增：上报通关结果
 const reportCompletion = async () => {
@@ -31,10 +38,31 @@ const reportCompletion = async () => {
 
 // 1. 生成随机印章并打乱
 const initGame = () => {
+  clearTimeout(hintTimer);
+
+  hintLevel.value = 0;
+  hintAvailable.value = false;
+  showHintModal.value = false;
+
   isWin.value = false;
-  hasReported.value = false;  // ← 新增：重置上报标记
-  const words = ["福", "吉", "乐", "雅", "和", "安"];
-  const text = words[Math.floor(Math.random() * words.length)];
+  hasReported.value = false;  
+
+const words = [
+  { text: "福" },
+  { text: "喜" },
+  { text: "雅" },
+  { text: "和" },
+  { text: "诚" },
+  { text: "德" },
+  { text: "康" },
+  { text: "瑞" },
+  { text: "安" }
+];
+
+currentSeal.value =
+  words[Math.floor(Math.random() * words.length)];
+
+const text = currentSeal.value.text;
   
   const canvas = document.createElement('canvas');
   canvas.width = puzzleSize;
@@ -65,6 +93,11 @@ const initGame = () => {
     });
   }
   cells.value = tempCells;
+  hintTimer = setTimeout(() => {
+  if (!isWin.value) {
+    hintAvailable.value = true;
+  }
+}, 30000);
 };
 
 const rotateCell = (index) => {
@@ -79,6 +112,15 @@ const checkWin = () => {
     isWin.value = true;
     reportCompletion();  // ← 新增：通关后自动上报
   }
+};
+
+const showNextHint = () => {
+  if (hintLevel.value < 2) {
+    hintLevel.value++;
+  }
+
+  showHintModal.value = true;
+  hintAvailable.value = false;
 };
 
 onMounted(async () => {
@@ -138,9 +180,16 @@ onMounted(async () => {
         <p>你精准地还原了这枚印章的章法布局。</p>
         <button @click="initGame" class="btn btn-finish">挑战下一关</button>
       </div>
-      <div v-else class="action-buttons">
-        <button class="btn btn-reset" @click="initGame">重置布局</button>
-      </div>
+
+<div v-if="!isWin" class="action-buttons">
+  <button
+  class="btn btn-hint"
+  :class="{ 'hint-active': hintAvailable }"
+  @click="showNextHint"
+>
+  {{hintAvailable ? '✨ 获取提示' : '💡 提示' }}
+</button>
+</div>
     </div>
 
     <Transition name="fade">
@@ -174,6 +223,48 @@ onMounted(async () => {
       </filter>
     </svg>
   </div>
+<Transition name="fade">
+  <div
+    v-if="showHintModal"
+    class="modal-overlay"
+    @click.self="showHintModal = false"
+  >
+    <div class="modal-content">
+      <button
+        class="close-x"
+        @click="showHintModal = false"
+      >
+        ×
+      </button>
+
+      <h3>提示</h3>
+
+      <div v-if="hintLevel === 1">
+        <p>这个字是：</p>
+
+        <div class="hint-word">
+          {{ currentSeal?.text }}
+        </div>
+      </div>
+
+      <div v-if="hintLevel >= 2">
+  <p>“{{ currentSeal?.text }}” 的对应篆书：</p>
+
+  <img
+    :src="sealImage"
+    class="hint-image"
+  />
+</div>
+
+      <button
+        class="btn btn-finish"
+        @click="showHintModal = false"
+      >
+        继续挑战
+      </button>
+    </div>
+  </div>
+</Transition>
 </template>
 
 <style scoped>
@@ -229,6 +320,7 @@ onMounted(async () => {
 
 /* --- 自动适配的外框 --- */
 .game-board-wrapper {
+  position: relative;
   padding: 15px;
   background: #555; 
   border-radius: 20px;
@@ -266,7 +358,7 @@ onMounted(async () => {
 /* --- 底部控制区：固定最小高度防止抖动 --- */
 .controls-bottom {
   width: 100%;
-  margin-top: 15px; /* 适当缩小间距 */
+  margin-top: 35px; 
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -312,13 +404,6 @@ onMounted(async () => {
   cursor: pointer;
   transition: all 0.2s ease;
   letter-spacing: 1px;
-}
-
-.btn-reset {
-  background: white;
-  color: #FFC03A;
-  border: 1px solid #FFC03A;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.03);
 }
 
 .btn-finish { 
@@ -447,9 +532,50 @@ onMounted(async () => {
   opacity: 0;
 }
 
+.btn-hint {
+  background: #FFF8E8;
+  color: #E8A600;
+  border: 1px solid #FFD45A;
+}
+
+.hint-word {
+  font-size: 52px;
+  font-weight: bold;
+  color: #A62C21;
+  margin: 20px 0;
+}
+
+.hint-image {
+  width: 220px;
+  border-radius: 12px;
+  margin: 20px 0;
+}
+
+.hint-active {
+  position: relative;
+  background: #FFC03A;
+  color: white;
+  animation: pulseHint 1.8s infinite;
+}
+
 @keyframes pop { 
   from { transform: scale(0.9); opacity: 0; } 
   to { transform: scale(1); opacity: 1; } 
+}
+
+@keyframes pulseHint {
+  0% {
+    box-shadow:
+      0 0 0 0 rgba(255,192,58,.55);
+  }
+  70% {
+    box-shadow:
+      0 0 0 18px rgba(255,192,58,0);
+  }
+  100% {
+    box-shadow:
+      0 0 0 0 rgba(255,192,58,0);
+  }
 }
 
 @media (max-width: 768px) {

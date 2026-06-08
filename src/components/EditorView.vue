@@ -46,14 +46,20 @@ const drawTemplate = (ctx) => {
   ctx.textBaseline = 'middle';
 
   const text = props.template.text;
-  const isSingle = text.replace('\n', '').length <= 1;
+  const cleanText = text.replace('\n', ''); // 去掉换行符算纯字数
 
-  if (isSingle) {
-    // 单字：从 200px 增加到 260px，视觉冲击力更强
+  if (cleanText.length === 1) {
+    // 单字：300px
     ctx.font = 'bold 300px "MyXiaoZhuan"';
     ctx.strokeText(text.replace('\n', ''), 200, 205); // 微调 5px 适配视觉中心
-  } else {
-    // 四字：从 90px 增加到 110px
+  } else if (cleanText.length === 2) {
+    // 2个字： 150px，间距拉开
+    ctx.font = 'bold 150px "MyXiaoZhuan"';
+    const lines = text.split('\n');
+    ctx.strokeText(lines[0] || '', 200, 120);
+    ctx.strokeText(lines[1] || '', 200, 280);
+  }else {
+    // 四字：130px
     ctx.font = 'bold 130px "MyXiaoZhuan"';
     const lines = text.split('\n');
     // 调整行高间距，让它们更紧凑居中
